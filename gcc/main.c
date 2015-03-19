@@ -28,11 +28,11 @@ int main(void){
      *	Bit 8 - UART Transmit Enable
      *	Bit 9 - UART Receive Enable
      */
-    UART0->CTL |= 0x0301;
+    //UART1->CTL |= 0x0301;
 
     // TODO - Section 14.3.2
-    //UART0->IBRD
-    //UART0->FBRD
+    //UART1->IBRD
+    //UART1->FBRD
 
 	while(1)
     {
