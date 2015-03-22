@@ -1,3 +1,5 @@
+#include <stdint.h>
+#include <stdbool.h>
 #include "driverlib/uart.h"
 
 int main(void){
