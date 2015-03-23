@@ -14,7 +14,7 @@ OBJDIR:=obj
 BINDIR:=bin/
 
 PROJECT_ROOT:=./
-INCLUDE_ROOT:=$(PROJECT_ROOT)/../inc/driverlib/ $(PROJECT_ROOT)/../inc/CMSIS/
+INCLUDE_ROOT:=$(PROJECT_ROOT)/../inc/driverlib/ $(PROJECT_ROOT)/../inc/CMSIS/ $(PROJECT_ROOT)/../inc/simpletools/
 
 
 INCLUDE_PATHS:=$(INCLUDE_ROOT)

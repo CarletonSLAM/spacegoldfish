@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "driverlib/uart.h"
+#include "gps.h"
+
 
 int main(void){
 
