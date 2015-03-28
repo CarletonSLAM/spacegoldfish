@@ -88,23 +88,23 @@ UARTIntHandler(void)
         //
         // Read the next character from the UART and write it back to the UART.
         //
-        ROM_UARTCharPutNonBlocking(UART1_BASE,
+        ROM_UARTCharPutNonBlocking(UART0_BASE,
                                    ROM_UARTCharGetNonBlocking(UART1_BASE));
 
         //
         // Blink the LED to show a character transfer is occuring.
         //
-        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
+        ROM_GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
 
         //
         // Delay for 1 millisecond.  Each SysCtlDelay is about 3 clocks.
         //
-        SysCtlDelay(SysCtlClockGet() / (1000 * 3));
+        ROM_SysCtlDelay(ROM_SysCtlClockGet() / (1000 * 3));
 
         //
         // Turn off the LED
         //
-        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
+        ROM_GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
 
     }
 }
@@ -125,7 +125,7 @@ UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
         //
         // Write the next character to the UART.
         //
-        ROM_UARTCharPutNonBlocking(UART1_BASE, *pui8Buffer++);
+        ROM_UARTCharPutNonBlocking(UART0_BASE, *pui8Buffer++);
     }
 }
 
@@ -167,6 +167,9 @@ main(void)
     ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
     ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
 
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+
     //
     // Enable processor interrupts.
     //
@@ -179,10 +182,19 @@ main(void)
     ROM_GPIOPinConfigure(GPIO_PB1_U1TX);
     ROM_GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
+    ROM_GPIOPinConfigure(GPIO_PA0_U0RX);
+    ROM_GPIOPinConfigure(GPIO_PA1_U0TX);
+    ROM_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+
+
+    ROM_UARTConfigSetExpClk(UART0_BASE, ROM_SysCtlClockGet(), 115200,
+                            (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+                             UART_CONFIG_PAR_NONE));
+
     //
     // Configure the UART for 115,200, 8-N-1 operation.
     //
-    ROM_UARTConfigSetExpClk(UART1_BASE, ROM_SysCtlClockGet(), 115200,
+    ROM_UARTConfigSetExpClk(UART1_BASE, ROM_SysCtlClockGet(), 9600,
                             (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                              UART_CONFIG_PAR_NONE));
 
@@ -202,6 +214,5 @@ main(void)
     //
     while(1)
     {
-			UARTSend((uint8_t *)"\033[2JEnter text: ", 16);
     }
 }
