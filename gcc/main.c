@@ -7,32 +7,13 @@ int main(void){
 
     // Enable GPIOF
 	SYSCTL->RCGCGPIO |= (1UL << 5);
-	
+
     // Enable the GPIO pin as output
-	GPIOF->DIR |= 0x0F;     
+	GPIOF->DIR |= 0x0F;
 
     // enable digital output
-    GPIOF->DEN |= 0x0F;       
+  GPIOF->DEN |= 0x0F;
 
-   // Enable GPIOB
-    SYSCTL->RCGCGPIO |= 0x02;
-
-    // Set up GPIOB as UART1
-    GPIOB->AFSEL |= 0x01;
-    GPIOB->PCTL |= 0x01;
-
-
-    /*
-     *	Set bits 0, 8, 9.
-     *	Bit 0 - UART Enable
-     *	Bit 8 - UART Transmit Enable
-     *	Bit 9 - UART Receive Enable
-     */
-    UART0->CTL |= 0x0301;
-
-    // TODO - Section 14.3.2
-    //UART0->IBRD
-    //UART0->FBRD
 
 	while(1)
     {
