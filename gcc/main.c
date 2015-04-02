@@ -1,3 +1,5 @@
+//#include <stdlib.h>
+#include <malloc.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "inc/hw_ints.h"
@@ -11,34 +13,76 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/uart.h"
 
-void
-UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count);
+void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count);
+void GPSSend(void);
 
-uint32_t gps_data[6][100];
+uint32_t* get_latitude(void);
+uint32_t* get_longitude(void);
+uint32_t* get_latitude_direction(void);
+uint32_t* get_longitude_direction(void);
 
-//*****************************************************************************
+uint32_t gps_buffer[700];
+uint32_t index, count;
+
+typedef struct{
+  uint32_t latitude[8];
+  uint32_t longitude[8];
+  uint32_t north_south;
+  uint32_t east_west;
+} GPS_data;
+
+GPS_data gps_data;
+
+
+//**************************************************************
+//
+// Accessors for the GPS data.
+//
+//**************************************************************
+
+uint32_t* get_latitude(void)
+{
+  return gps_data.latitude;
+}
+
+uint32_t* get_longitude(void)
+{
+  return gps_data.longitude;
+}
+
+uint32_t* get_latitude_direction(void)
+{
+  return &gps_data.north_south;
+}
+
+uint32_t* get_longitude_direction(void)
+{
+  return &gps_data.east_west;
+}
+
+
+
+//**************************************************************
 //
 // The error routine that is called if the driver library encounters an error.
 //
-//*****************************************************************************
+//**************************************************************
 #ifdef DEBUG
-void
-__error__(char *pcFilename, uint32_t ui32Line)
+void __error__(char *pcFilename, uint32_t ui32Line)
 {
 }
 #endif
 
-//*****************************************************************************
+//**************************************************************
 //
 // The UART interrupt handler.
 //
-//*****************************************************************************
-void
-UARTIntHandler(void)
+//**************************************************************
+void UARTIntHandler(void)
 {
     uint32_t ui32Status;
-    uint32_t index = 0;
     uint32_t c;
+    uint32_t counter = 0;
     //
     // Get the interrrupt status.
     //
@@ -52,19 +96,19 @@ UARTIntHandler(void)
     //
     // Loop while there are characters in the receive FIFO.
     //
-    for (int i = 0 ; ROM_UARTCharsAvail(UART1_BASE) ; i++)
+    while (ROM_UARTCharsAvail(UART1_BASE))
     {
+      counter++;
         //
         // Read the next character from the UART and write it back to the UART.
         //
         c = ROM_UARTCharGetNonBlocking(UART1_BASE);
-        if ( c == '$') {
-          index++;
+
+        if (index++ > 699){
+          index = 0;
         }
 
-        gps_data[index][i++] = c;
-
-
+        gps_buffer[index] = c;
 
         //
         // Blink the LED to show a character transfer is occuring.
@@ -83,16 +127,15 @@ UARTIntHandler(void)
 
     }
 
-    UARTSend(gps_data[6], 100);
+    //UARTSend((uint8_t*) counter, 1);
 }
 
-//*****************************************************************************
+//*************************************************************
 //
 // Send a string to the UART.
 //
-//*****************************************************************************
-void
-UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
+//*************************************************************
+void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
 {
     //
     // Loop while there are more characters to send.
@@ -106,14 +149,73 @@ UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
     }
 }
 
-//*****************************************************************************
+//*************************************************************
+//
+// Send GPS data over UART.
+//
+//*************************************************************
+
+void GPSSend(void)
+{
+  uint32_t latitude[10];
+  uint32_t longitude[10];
+
+  for (int i = 0 ; i < 8 ; i++){
+    longitude[i] = gps_data.longitude[i];
+    latitude[i] = gps_data.latitude[i];
+  }
+  longitude[8] = ' ';
+  longitude[9] = gps_data.east_west;
+
+  latitude[8] = ' ';
+  latitude[9] = gps_data.north_south;
+
+  UARTSend((uint8_t*) latitude, 10);
+  UARTSend((uint8_t*) longitude, 10);
+
+}
+
+//*************************************************************
+//
+// Parse the GPS buffer and store information in the struct.
+//
+//*************************************************************
+
+
+//************************************************************
 //
 // This example demonstrates how to send a string of data to the UART.
 //
-//*****************************************************************************
-int
-main(void)
+//************************************************************
+int main(void)
 {
+    uint32_t count;
+    index = 0;
+    count = 0;
+
+    //gps_data = malloc(sizeof(GPS_data));
+
+    gps_data.latitude[0] = '0';
+    gps_data.latitude[1] = '7';
+    gps_data.latitude[2] = '5';
+    gps_data.latitude[3] = '.';
+    gps_data.latitude[4] = '6';
+    gps_data.latitude[5] = '9';
+    gps_data.latitude[6] = '7';
+    gps_data.latitude[7] = '6';
+
+    gps_data.longitude[0] = '4';
+    gps_data.longitude[1] = '5';
+    gps_data.longitude[2] = '.';
+    gps_data.longitude[3] = '3';
+    gps_data.longitude[4] = '8';
+    gps_data.longitude[5] = '3';
+    gps_data.longitude[6] = '1';
+    gps_data.longitude[7] = ' ';
+
+    gps_data.north_south = 'N';
+    gps_data.east_west = 'E';
+
     //
     // Enable lazy stacking for interrupt handlers.  This allows floating-point
     // instructions to be used within interrupt handlers, but at the expense of
@@ -181,15 +283,15 @@ main(void)
     ROM_IntEnable(INT_UART1);
     ROM_UARTIntEnable(UART1_BASE, UART_INT_RX | UART_INT_RT);
 
-    //
-    // Prompt for text to be entered.
-    //
-    UARTSend((uint8_t *)"\033[2JEnter text: ", 16);
-
-    //
-    // Loop forever echoing data through the UART.
-    //
-    while(1)
-    {
+    while(1){
+      count++;
+      if(count > 200000){
+        count = 0;
+        ROM_UARTCharPutNonBlocking(UART0_BASE, '\n');
+        ROM_UARTCharPutNonBlocking(UART0_BASE, '\n');
+        //UARTSend((uint8_t*) gps_buffer, 699);
+        GPSSend();
+      }
     }
+
 }
