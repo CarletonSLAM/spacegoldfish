@@ -16,7 +16,7 @@
 void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count);
 void GPSSend(void);
 void parse_gps_data(void);
-char parse_code(char *buffer, uint32_t index);
+void parse_code(char *buffer, uint32_t index);
 void update_coordinates(char *buffer, uint32_t index);
 
 char* get_latitude(void);
@@ -24,11 +24,13 @@ char* get_longitude(void);
 char get_latitude_direction(void);
 char get_longitude_direction(void);
 
-#define BUFFERSIZE 750
+//45.23034210 N, 075.418724 W
 
-char gps_buffer[550];
+#define BUFFERSIZE 550
 
-char gps_dummy_buffer[BUFFERSIZE] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.281,,280315,,,A*61\r\n$GPVTG,,T,,M,0.281,N,0.521,K,A*2E\r\n$GPGGA,194426.00,4523.03374,N,07541.86434,W,1,05,1.71,147.4,M,-34.2,M,,*67\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0E\r\n$GPGSV,3,1,11,03,31,251,15,08,71,036,23,14,06,137,08,16,56,212,24*7F\r\n$GPGSV,3,2,11,23,43,305,26,29,19,044,11,31,46,075,25,32,18,205,*75\r\n$GPGSV,3,3,11,46,35,211,,48,14,245,,51,29,221,*4B\r\n$GPGLL,4523.03374,N,07541.86434,W,194426.00,A,A*7E\r\n$GPRMC,194427.00,A,4523.03374,N,07541.86446,W,0.188,,280315,,,A*6F\r\n$GPVTG,,T,,M,0.188,N,0.348,K,A*2D\r\n$GPGGA,194427.00,4523.03374,N,07541.86446,W,1,05,1.71,147.6,M,-34.2,M,,*61\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0";
+char gps_buffer[BUFFERSIZE];
+
+char gps_dummy_buffer[750] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.281,,280315,,,A*61\r\n$GPVTG,,T,,M,0.281,N,0.521,K,A*2E\r\n$GPGGA,194426.00,4523.03374,N,07541.86434,W,1,05,1.71,147.4,M,-34.2,M,,*67\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0E\r\n$GPGSV,3,1,11,03,31,251,15,08,71,036,23,14,06,137,08,16,56,212,24*7F\r\n$GPGSV,3,2,11,23,43,305,26,29,19,044,11,31,46,075,25,32,18,205,*75\r\n$GPGSV,3,3,11,46,35,211,,48,14,245,,51,29,221,*4B\r\n$GPGLL,4523.03374,N,07541.86434,W,194426.00,A,A*7E\r\n$GPRMC,194427.00,A,4523.03374,N,07541.86446,W,0.188,,280315,,,A*6F\r\n$GPVTG,,T,,M,0.188,N,0.348,K,A*2D\r\n$GPGGA,194427.00,4523.03374,N,07541.86446,W,1,05,1.71,147.6,M,-34.2,M,,*61\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0";
 
 uint32_t index, count;
 
@@ -205,9 +207,8 @@ void GPSSend(void)
 void parse_gps_data(void)
 {
   uint32_t index = 0;
-  char nmea_code;
 
-  char *buffer = gps_dummy_buffer;
+  char *buffer = gps_buffer;
 
   while (index <= BUFFERSIZE){
 
@@ -215,18 +216,20 @@ void parse_gps_data(void)
       index++;
       continue;
     }
-    nmea_code = parse_code(buffer, ++index);
+    parse_code(buffer, ++index);
+  }
+}
 
-    switch(nmea_code){
-    case 0:
-      update_coordinates(buffer, (index+6)%BUFFERSIZE);
-      break;
-    case 0xff:
-    default:
+void _fix_coordinate(char* location)
+{
+  uint32_t i;
+  for (i = 0; i < 6; i++){
+    if (*(location+i) == '.'){
+      *(location+i) = *(location+i-1);
+      *(location+i-1) = *(location+i-2);
+      *(location+i-2) = '.';
       break;
     }
-
-
   }
 }
 
@@ -239,9 +242,10 @@ void update_coordinates(char *buffer, uint32_t index)
 {
   char *latitude = get_latitude();
   char *longitude = get_longitude();
+  uint32_t offset = index;
 
   while (*(buffer+index) != ','){
-    *(latitude+index) = *(buffer+index);
+    *(latitude+index-offset) = *(buffer+index);
     index = (index+1)%BUFFERSIZE;
   }
   index = (index+1)%BUFFERSIZE;
@@ -250,12 +254,18 @@ void update_coordinates(char *buffer, uint32_t index)
   index = (index+1)%BUFFERSIZE;
   index = (index+1)%BUFFERSIZE;
 
+  offset = index;
+
   while (*(buffer+index) != ','){
-    *(longitude+index) = *(buffer+index);
+    *(longitude+index-offset) = *(buffer+index);
     index = (index+1)%BUFFERSIZE;
   }
   index = (index+1)%BUFFERSIZE;
   gps_data.east_west = *(buffer+index);
+
+  _fix_coordinate(latitude);
+  _fix_coordinate(longitude);
+
 }
 
 /*
@@ -263,30 +273,28 @@ void update_coordinates(char *buffer, uint32_t index)
  *  index exceeds our BUFFERSIZE then the modulus will allow us to wrap around
  *  and start at the beginning of our circular array.
  */
-char parse_code(char *buffer, uint32_t index)
+void parse_code(char *buffer, uint32_t index)
 {
   //char *gpgll = "GPGLL";
   //char *gpgsv = "GPGSV";
 
-  if (*(buffer+(index%BUFFERSIZE)) != 'G') return -1;
+  if (*(buffer+(index%BUFFERSIZE)) != 'G') return;
   index++;
-  if (*(buffer+(index%BUFFERSIZE)) != 'P') return -1;
+  if (*(buffer+(index%BUFFERSIZE)) != 'P') return;
   index++;
 
   if (*(buffer+(index%BUFFERSIZE))=='G'
     && *(buffer+((index+1)%BUFFERSIZE))=='L'
     && *(buffer+((index+2)%BUFFERSIZE))=='L')
   {
-    return 0;
+    update_coordinates(buffer, (index+4)%BUFFERSIZE);
   }
   if (*(buffer+(index%BUFFERSIZE))=='G'
     && *(buffer+((index+1)%BUFFERSIZE))=='S'
     && *(buffer+((index+2)%BUFFERSIZE))=='V')
   {
-    return 1;
+    return;
   }
-
-  return -1;
 }
 
 
@@ -391,7 +399,7 @@ int main(void)
     ROM_IntEnable(INT_UART1);
     ROM_UARTIntEnable(UART1_BASE, UART_INT_RX | UART_INT_RT);
 
-    parse_gps_data();
+
 
     while(1){
       count++;
@@ -399,6 +407,7 @@ int main(void)
         count = 0;
         ROM_UARTCharPutNonBlocking(UART0_BASE, '\n');
         //UARTSend((uint8_t*) gps_buffer, 699);
+        parse_gps_data();
         GPSSend();
       }
     }
