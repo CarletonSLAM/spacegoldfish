@@ -19,14 +19,19 @@ void parse_gps_data(void);
 void parse_code(char *buffer, uint32_t index);
 void update_coordinates(char *buffer, uint32_t index);
 
-char* get_latitude(void);
-char* get_longitude(void);
+char *get_latitude(void);
+char *get_longitude(void);
+char *get_altitude(void);
+char *get_satellites_tracked(void);
 char get_latitude_direction(void);
 char get_longitude_direction(void);
 
+uint32_t set_location(char *buffer, uint32_t index, char *location, uint32_t length);
+uint32_t set_satellites_tracked(char* buffer, char index);
+
 //45.23034210 N, 075.418724 W
 
-#define BUFFERSIZE 550
+#define BUFFERSIZE 750
 
 char gps_buffer[BUFFERSIZE];
 
@@ -35,10 +40,16 @@ char gps_dummy_buffer[750] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.28
 uint32_t index, count;
 
 typedef struct{
-  char latitude[10];
-  char longitude[11];
+  char latitude[11];
   char north_south;
+
+  char longitude[12];
   char east_west;
+
+  char altitude[15];
+
+  char number_of_satellites[2];
+
 } GPS_data;
 
 GPS_data gps_data;
@@ -58,6 +69,16 @@ char* get_latitude(void)
 char* get_longitude(void)
 {
   return gps_data.longitude;
+}
+
+char* get_altitude(void)
+{
+  return gps_data.altitude;
+}
+
+char* get_satellites_tracked(void)
+{
+  return gps_data.number_of_satellites;
 }
 
 char get_latitude_direction(void)
@@ -168,12 +189,14 @@ void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
 
 void GPSSend(void)
 {
-  char location[29];
+  char location[46];
   char *latitude = get_latitude();
   char *longitude = get_longitude();
+  char *altitude = get_altitude();
 
   unsigned int i = 0;
   unsigned int j = 0;
+  unsigned int k = 0;
 
   for (  ; i < 11 ; i++ ){
     *(location+i) = *(latitude+i);
@@ -186,11 +209,18 @@ void GPSSend(void)
 
 
   for (  ; j < 10 ; j++ ){
-    *(location + i + j) = *(longitude + j);
+    *(location+i+j) = *(longitude+j);
   }
 
   *(location + i + j++) = ' ';
   *(location + i + j++) = get_longitude_direction();
+  *(location + i++) = ',';
+  *(location + i++) = ' ';
+
+  for (  ; k < 15 ; k++ ){
+    *(location+i+j+k) = *(altitude+k);
+  }
+
   *(location + sizeof(location) - 2) = '\r';
   *(location + sizeof(location) - 1) = '\n';
 
@@ -208,7 +238,7 @@ void parse_gps_data(void)
 {
   uint32_t index = 0;
 
-  char *buffer = gps_buffer;
+  char *buffer = gps_dummy_buffer;
 
   while (index <= BUFFERSIZE){
 
@@ -220,17 +250,86 @@ void parse_gps_data(void)
   }
 }
 
-void _fix_coordinate(char* location)
+uint32_t set_location(char *buffer, uint32_t index, char *location, uint32_t length)
 {
   uint32_t i;
-  for (i = 0; i < 6; i++){
-    if (*(location+i) == '.'){
-      *(location+i) = *(location+i-1);
-      *(location+i-1) = *(location+i-2);
-      *(location+i-2) = '.';
-      break;
+  // when increamenting we'll need to subtract the index offset
+  uint32_t offset;
+
+  index = index%BUFFERSIZE;
+  offset = index;
+
+  // the nmea strings from the gps is comma delimited so loop till you find one
+  while (*(buffer+index) != ','){
+    *(location+index-offset) = *(buffer+index);
+    // remember to wrap around.
+    index = (index+1)%BUFFERSIZE;
+    if (index == 0){
+      offset = 0;
     }
   }
+  // skip the comma
+  index = (index+1)%BUFFERSIZE;
+  if (index == 0){ offset = 0; }
+
+  // grab the direction
+  if (length == 15){
+    // the case for the altitude is different.
+    *(location+index-offset) = ' ';
+    index = (index+1)%BUFFERSIZE;
+    if (index == 0){ offset = 0; }
+    *(location+index-offset) = *(buffer+index);
+    offset = (index-offset)+1;
+    while (offset < 15){
+      *(location+offset) = ' ';
+      offset++;
+    }
+  }else if (length == 10){
+    gps_data.north_south = *(buffer+index);
+  }else{
+    gps_data.east_west = *(buffer+index);
+  }
+  // skip comma
+  index = (index+1)%BUFFERSIZE;
+  index = (index+1)%BUFFERSIZE;
+
+
+  for (i = length; i > length - 8; i--){
+    *(location+i) = *(location+i-1);
+  }
+  *(location+i) = ' ';
+
+  return index;
+
+}
+
+uint32_t set_satellites_tracked(char *buffer, char index)
+{
+  uint32_t i;
+  // when increamenting we'll need to subtract the index offset
+  uint32_t offset;
+  char *satellites = get_satellites_tracked();
+
+  index = index%BUFFERSIZE;
+  offset = index;
+
+  // the nmea strings from the gps is comma delimited so loop till you find one
+  while (*(buffer+index) != ','){
+    *(satellites+index-offset) = *(buffer+index);
+    // remember to wrap around.
+    index = (index+1)%BUFFERSIZE;
+    if (index == 0){ offset = 0; }
+  }
+}
+
+uint32_t _skip_data(char *buffer, uint32_t index)
+{
+  while (*(buffer+index) != ','){
+    index = (index+1)%BUFFERSIZE;
+  }
+  return (index+1)%BUFFERSIZE;
+
+
 }
 
 /*
@@ -242,29 +341,29 @@ void update_coordinates(char *buffer, uint32_t index)
 {
   char *latitude = get_latitude();
   char *longitude = get_longitude();
-  uint32_t offset = index;
+  char *altitude = get_altitude();
 
-  while (*(buffer+index) != ','){
-    *(latitude+index-offset) = *(buffer+index);
-    index = (index+1)%BUFFERSIZE;
-  }
-  index = (index+1)%BUFFERSIZE;
+  index = index%BUFFERSIZE;
 
-  gps_data.north_south = *(buffer+index);
-  index = (index+1)%BUFFERSIZE;
-  index = (index+1)%BUFFERSIZE;
+  // skip the time
+  index = _skip_data(buffer, index);
 
-  offset = index;
+  index = set_location(buffer, index, latitude, 10);
+  index = set_location(buffer, index, longitude, 11);
 
-  while (*(buffer+index) != ','){
-    *(longitude+index-offset) = *(buffer+index);
-    index = (index+1)%BUFFERSIZE;
-  }
-  index = (index+1)%BUFFERSIZE;
-  gps_data.east_west = *(buffer+index);
+  // skip the fix
+  index = _skip_data(buffer, index);
 
-  _fix_coordinate(latitude);
-  _fix_coordinate(longitude);
+  // get satalites tracked
+  index = set_satellites_tracked(buffer, index);
+
+
+  // skip Horizontal dilution of position
+  index = _skip_data(buffer, index);
+
+  // altitude
+  index = set_location(buffer, index, altitude, 15);
+
 
 }
 
@@ -275,26 +374,23 @@ void update_coordinates(char *buffer, uint32_t index)
  */
 void parse_code(char *buffer, uint32_t index)
 {
-  //char *gpgll = "GPGLL";
+  //char *gpgll = "GPGGA";
   //char *gpgsv = "GPGSV";
 
+  // All pieces of data start with GP
   if (*(buffer+(index%BUFFERSIZE)) != 'G') return;
   index++;
   if (*(buffer+(index%BUFFERSIZE)) != 'P') return;
   index++;
 
+  // Check for the GLL data
   if (*(buffer+(index%BUFFERSIZE))=='G'
-    && *(buffer+((index+1)%BUFFERSIZE))=='L'
-    && *(buffer+((index+2)%BUFFERSIZE))=='L')
+    && *(buffer+((index+1)%BUFFERSIZE))=='G'
+    && *(buffer+((index+2)%BUFFERSIZE))=='A')
   {
     update_coordinates(buffer, (index+4)%BUFFERSIZE);
   }
-  if (*(buffer+(index%BUFFERSIZE))=='G'
-    && *(buffer+((index+1)%BUFFERSIZE))=='S'
-    && *(buffer+((index+2)%BUFFERSIZE))=='V')
-  {
-    return;
-  }
+
 }
 
 
