@@ -1,5 +1,5 @@
 //#include <stdlib.h>
-#include <malloc.h>
+//#include <malloc.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "inc/hw_ints.h"
@@ -31,11 +31,15 @@ uint32_t set_satellites_tracked(char* buffer, char index);
 
 //45.23034210 N, 075.418724 W
 
-#define BUFFERSIZE 750
+#define BUFFERSIZE 450
 
 char gps_buffer[BUFFERSIZE];
 
-char gps_dummy_buffer[750] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.281,,280315,,,A*61\r\n$GPVTG,,T,,M,0.281,N,0.521,K,A*2E\r\n$GPGGA,194426.00,4523.03374,N,07541.86434,W,1,05,1.71,147.4,M,-34.2,M,,*67\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0E\r\n$GPGSV,3,1,11,03,31,251,15,08,71,036,23,14,06,137,08,16,56,212,24*7F\r\n$GPGSV,3,2,11,23,43,305,26,29,19,044,11,31,46,075,25,32,18,205,*75\r\n$GPGSV,3,3,11,46,35,211,,48,14,245,,51,29,221,*4B\r\n$GPGLL,4523.03374,N,07541.86434,W,194426.00,A,A*7E\r\n$GPRMC,194427.00,A,4523.03374,N,07541.86446,W,0.188,,280315,,,A*6F\r\n$GPVTG,,T,,M,0.188,N,0.348,K,A*2D\r\n$GPGGA,194427.00,4523.03374,N,07541.86446,W,1,05,1.71,147.6,M,-34.2,M,,*61\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0";
+char gps_dummy_buffer[750] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.281,,280315,,,A*61\r\n$GPVTG,,T,,M,0.281,N,0.521,K,A*2E\r\n$GPGGA,194426.00,9523.03374,S,17541.86434,E,1,06,1.71,30000.874,M,-34.2,M,,*67\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0E\r\n$GPGSV,3,1,11,03,31,251,15,08,71,036,23,14,06,137,08,16,56,212,24*7F\r\n$GPGSV,3,2,11,23,43,305,26,29,19,044,11,31,46,075,25,32,18,205,*75\r\n$GPGSV,3,3,11,46,35,211,,48,14,245,,51,29,221,*4B\r\n$GPGLL,4523.03374,N,07541.86434,W,194426.00,A,A*7E\r\n$GPRMC,194427.00,A,4523.03374,N,07541.86446,W,0.188,,280315,,,A*6F\r\n$GPVTG,,T,,M,0.188,N,0.348,K,A*2D\r\n$GPGGA,194427.00,4523.03374,N,07541.86446,W,1,05,1.71,147.6,M,-34.2,M,,*61\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0";
+
+//char gps_dummy_buffer[550] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.281,,280315,,,A*61\r\n$GPVTG,,T,,M,0.281,N,0.521,K,A*2E\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0E\r\n$GPGSV,3,1,11,03,31,251,15,08,71,036,23,14,06,137,08,16,56,212,24*7F\r\n$GPGSV,3,2,11,23,43,305,26,29,19,044,11,31,46,075,25,32,18,205,*75\r\n$GPGSV,3,3,11,46,35,211,,48,14,245,,51,29,221,*4B\r\n$GPGLL,4523.03374,N,07541.86434,W,194426.00,A,A*7E\r\n";
+
+//char gps_dummy_buffer[750] = "$GPGGA,194426.00,4523.03374,N,07541.86434,W,1,05,1.71,147.9084,M,-34.2,M,,*67\r\n";
 
 uint32_t index, count;
 
@@ -135,7 +139,7 @@ void UARTIntHandler(void)
         //
         c = ROM_UARTCharGetNonBlocking(UART1_BASE);
 
-        if (index++ > 699){
+        if (index++ >= BUFFERSIZE){
           index = 0;
         }
 
@@ -189,14 +193,16 @@ void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
 
 void GPSSend(void)
 {
-  char location[46];
+  char location[52];
   char *latitude = get_latitude();
   char *longitude = get_longitude();
   char *altitude = get_altitude();
+  char *satellites = get_satellites_tracked();
 
   unsigned int i = 0;
   unsigned int j = 0;
   unsigned int k = 0;
+  unsigned int o = 0;
 
   for (  ; i < 11 ; i++ ){
     *(location+i) = *(latitude+i);
@@ -208,18 +214,27 @@ void GPSSend(void)
   *(location + i++) = ' ';
 
 
-  for (  ; j < 10 ; j++ ){
+  for (  ; j < 12 ; j++ ){
     *(location+i+j) = *(longitude+j);
   }
 
   *(location + i + j++) = ' ';
   *(location + i + j++) = get_longitude_direction();
-  *(location + i++) = ',';
-  *(location + i++) = ' ';
+  *(location + i + j++) = ',';
+  *(location + i + j++) = ' ';
 
   for (  ; k < 15 ; k++ ){
     *(location+i+j+k) = *(altitude+k);
   }
+
+
+  *(location+i+j+k++) = ',';
+  *(location+i+j+k++) = ' ';
+
+  for (  ; o < 2 ; o++ ){
+    *(location+i+j+k+o) = *(satellites+o);
+  }
+
 
   *(location + sizeof(location) - 2) = '\r';
   *(location + sizeof(location) - 1) = '\n';
@@ -238,7 +253,7 @@ void parse_gps_data(void)
 {
   uint32_t index = 0;
 
-  char *buffer = gps_dummy_buffer;
+  char *buffer = gps_buffer;
 
   while (index <= BUFFERSIZE){
 
@@ -247,43 +262,38 @@ void parse_gps_data(void)
       continue;
     }
     parse_code(buffer, ++index);
+//    break;
   }
 }
 
 uint32_t set_location(char *buffer, uint32_t index, char *location, uint32_t length)
 {
   uint32_t i;
-  // when increamenting we'll need to subtract the index offset
-  uint32_t offset;
+  // when incrementing we'll need to subtract the index offset
+  uint32_t offset = 0;
 
   index = index%BUFFERSIZE;
-  offset = index;
 
   // the nmea strings from the gps is comma delimited so loop till you find one
   while (*(buffer+index) != ','){
-    *(location+index-offset) = *(buffer+index);
+    *(location+offset) = *(buffer+index);
     // remember to wrap around.
     index = (index+1)%BUFFERSIZE;
-    if (index == 0){
-      offset = 0;
-    }
+    offset++;
   }
   // skip the comma
   index = (index+1)%BUFFERSIZE;
-  if (index == 0){ offset = 0; }
 
   // grab the direction
   if (length == 15){
     // the case for the altitude is different.
-    *(location+index-offset) = ' ';
-    index = (index+1)%BUFFERSIZE;
-    if (index == 0){ offset = 0; }
-    *(location+index-offset) = *(buffer+index);
-    offset = (index-offset)+1;
-    while (offset < 15){
+    *(location+offset) = ' ';
+    offset++;
+    *(location+offset) = *(buffer+index);
+    while (++offset < 15){
       *(location+offset) = ' ';
-      offset++;
     }
+    return -1;
   }else if (length == 10){
     gps_data.north_south = *(buffer+index);
   }else{
@@ -305,21 +315,21 @@ uint32_t set_location(char *buffer, uint32_t index, char *location, uint32_t len
 
 uint32_t set_satellites_tracked(char *buffer, char index)
 {
-  uint32_t i;
   // when increamenting we'll need to subtract the index offset
-  uint32_t offset;
+  uint32_t offset = 0;
   char *satellites = get_satellites_tracked();
 
-  index = index%BUFFERSIZE;
-  offset = index;
+  // index = index%BUFFERSIZE;
 
   // the nmea strings from the gps is comma delimited so loop till you find one
   while (*(buffer+index) != ','){
-    *(satellites+index-offset) = *(buffer+index);
+    *(satellites+offset) = *(buffer+index);
     // remember to wrap around.
     index = (index+1)%BUFFERSIZE;
-    if (index == 0){ offset = 0; }
+    offset++;
   }
+
+  return (index+1)%BUFFERSIZE;
 }
 
 uint32_t _skip_data(char *buffer, uint32_t index)
@@ -330,6 +340,20 @@ uint32_t _skip_data(char *buffer, uint32_t index)
   return (index+1)%BUFFERSIZE;
 
 
+}
+
+void sendIndex(uint32_t index)
+{
+  uint32_t tmp = index/10;
+  char num[16] = "            \n";
+  char i = 0;
+  index = index%10;
+  while (index != 0){
+    num[8 - i++] = (char) index + '0';
+    index = tmp%10;
+    tmp = tmp/10;
+  }
+  UARTSend((uint8_t*)num, 16);
 }
 
 /*
@@ -353,19 +377,23 @@ void update_coordinates(char *buffer, uint32_t index)
 
   // skip the fix
   index = _skip_data(buffer, index);
+  //sendIndex(index);
 
+  //index = (index+2)%BUFFERSIZE;
   // get satalites tracked
   index = set_satellites_tracked(buffer, index);
+  //sendIndex(index);
 
-
+  //sendIndex(index);
   // skip Horizontal dilution of position
   index = _skip_data(buffer, index);
 
   // altitude
   index = set_location(buffer, index, altitude, 15);
 
-
 }
+
+
 
 /*
  *  You may notice this: (index%BUFFERSIZE) in multiple places. If our
@@ -499,12 +527,13 @@ int main(void)
 
     while(1){
       count++;
-      if(count > 200000){
+      if(count > 1500000){
         count = 0;
         ROM_UARTCharPutNonBlocking(UART0_BASE, '\n');
         //UARTSend((uint8_t*) gps_buffer, 699);
         parse_gps_data();
         GPSSend();
+        //UARTSend((uint8_t*) gps_buffer, BUFFERSIZE);
       }
     }
 
