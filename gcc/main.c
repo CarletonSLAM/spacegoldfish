@@ -459,7 +459,6 @@ void parse_code(char *buffer, uint32_t index)
 // Initialization code for the protocols we use.
 //
 //************************************************************
-
 void UART_setup(void)
 {
   //
@@ -572,8 +571,8 @@ int main(void)
 
 
   //TimerClockSourceSet(TIMER0_BASE, TIMER_CLOCK_SYSTEM);
-
- /* // Configure Timer0 as a full-width periodic timer
+  /* 
+  // Configure Timer0 as a full-width periodic timer
   ROM_TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
 
   ROM_TimerPrescaleMatchSet(TIMER0_BASE, TIMER_BOTH, 255);
