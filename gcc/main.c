@@ -12,12 +12,22 @@
 #include "driverlib/rom.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/uart.h"
+//**************************************************************
+//    ADD DESCRIPTIONSSS
+//    Note:You may notice this: (index%BUFFERSIZE) in multiple places. If our
+//    index exceeds our BUFFERSIZE then the modulus will allow us to wrap around
+//    and start at the beginning of our circular array.
+//**************************************************************
 
+//  FUNCTION PROTOTYPES
+//**************************************************************
 void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count);
 void GPSSend(void);
 void parse_gps_data(void);
 void parse_code(char *buffer, uint32_t index);
 void update_coordinates(char *buffer, uint32_t index);
+void initConfig(void);
+void initDebugTerminal(void);
 
 char *get_latitude(void);
 char *get_longitude(void);
@@ -28,21 +38,17 @@ char get_longitude_direction(void);
 
 uint32_t set_location(char *buffer, uint32_t index, char *location, uint32_t length);
 uint32_t set_satellites_tracked(char* buffer, char index);
+//**************************************************************
 
-//45.23034210 N, 075.418724 W
 
+//  CONSTANTS           
+//**************************************************************
 #define BUFFERSIZE 450
+//**************************************************************
 
-char gps_buffer[BUFFERSIZE];
 
-char gps_dummy_buffer[750] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.281,,280315,,,A*61\r\n$GPVTG,,T,,M,0.281,N,0.521,K,A*2E\r\n$GPGGA,194426.00,9523.03374,S,17541.86434,E,1,06,1.71,30000.874,M,-34.2,M,,*67\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0E\r\n$GPGSV,3,1,11,03,31,251,15,08,71,036,23,14,06,137,08,16,56,212,24*7F\r\n$GPGSV,3,2,11,23,43,305,26,29,19,044,11,31,46,075,25,32,18,205,*75\r\n$GPGSV,3,3,11,46,35,211,,48,14,245,,51,29,221,*4B\r\n$GPGLL,4523.03374,N,07541.86434,W,194426.00,A,A*7E\r\n$GPRMC,194427.00,A,4523.03374,N,07541.86446,W,0.188,,280315,,,A*6F\r\n$GPVTG,,T,,M,0.188,N,0.348,K,A*2D\r\n$GPGGA,194427.00,4523.03374,N,07541.86446,W,1,05,1.71,147.6,M,-34.2,M,,*61\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0";
-
-//char gps_dummy_buffer[550] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.281,,280315,,,A*61\r\n$GPVTG,,T,,M,0.281,N,0.521,K,A*2E\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0E\r\n$GPGSV,3,1,11,03,31,251,15,08,71,036,23,14,06,137,08,16,56,212,24*7F\r\n$GPGSV,3,2,11,23,43,305,26,29,19,044,11,31,46,075,25,32,18,205,*75\r\n$GPGSV,3,3,11,46,35,211,,48,14,245,,51,29,221,*4B\r\n$GPGLL,4523.03374,N,07541.86434,W,194426.00,A,A*7E\r\n";
-
-//char gps_dummy_buffer[750] = "$GPGGA,194426.00,4523.03374,N,07541.86434,W,1,05,1.71,147.9084,M,-34.2,M,,*67\r\n";
-
-uint32_t index, count;
-
+//  STRUCTURE DECLERATIONS
+//**************************************************************
 typedef struct{
   char latitude[11];
   char north_south;
@@ -55,8 +61,19 @@ typedef struct{
   char number_of_satellites[2];
 
 } GPS_data;
+//**************************************************************
 
+
+
+//  VARIABLES
+//**************************************************************
+char gps_buffer[BUFFERSIZE];
+char gps_dummy_buffer[750] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.281,,280315,,,A*61\r\n$GPVTG,,T,,M,0.281,N,0.521,K,A*2E\r\n$GPGGA,194426.00,9523.03374,S,17541.86434,E,1,06,1.71,30000.874,M,-34.2,M,,*67\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0E\r\n$GPGSV,3,1,11,03,31,251,15,08,71,036,23,14,06,137,08,16,56,212,24*7F\r\n$GPGSV,3,2,11,23,43,305,26,29,19,044,11,31,46,075,25,32,18,205,*75\r\n$GPGSV,3,3,11,46,35,211,,48,14,245,,51,29,221,*4B\r\n$GPGLL,4523.03374,N,07541.86434,W,194426.00,A,A*7E\r\n$GPRMC,194427.00,A,4523.03374,N,07541.86446,W,0.188,,280315,,,A*6F\r\n$GPVTG,,T,,M,0.188,N,0.348,K,A*2D\r\n$GPGGA,194427.00,4523.03374,N,07541.86446,W,1,05,1.71,147.6,M,-34.2,M,,*61\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0";
+//char gps_dummy_buffer[550] = "$GPRMC,194426.00,A,4523.03374,N,07541.86434,W,0.281,,280315,,,A*61\r\n$GPVTG,,T,,M,0.281,N,0.521,K,A*2E\r\n$GPGSA,A,3,03,16,31,23,29,,,,,,,,3.57,1.71,3.14*0E\r\n$GPGSV,3,1,11,03,31,251,15,08,71,036,23,14,06,137,08,16,56,212,24*7F\r\n$GPGSV,3,2,11,23,43,305,26,29,19,044,11,31,46,075,25,32,18,205,*75\r\n$GPGSV,3,3,11,46,35,211,,48,14,245,,51,29,221,*4B\r\n$GPGLL,4523.03374,N,07541.86434,W,194426.00,A,A*7E\r\n";
+//char gps_dummy_buffer[750] = "$GPGGA,194426.00,4523.03374,N,07541.86434,W,1,05,1.71,147.9084,M,-34.2,M,,*67\r\n";
+uint32_t index, count;
 GPS_data gps_data;
+//**************************************************************
 
 
 //**************************************************************
@@ -108,9 +125,12 @@ void __error__(char *pcFilename, uint32_t ui32Line)
 }
 #endif
 
+
+
 //**************************************************************
+//  Function: UARTIntHandler
 //
-// The UART interrupt handler.
+//    The UART interrupt handler.
 //
 //**************************************************************
 void UARTIntHandler(void)
@@ -166,8 +186,8 @@ void UARTIntHandler(void)
 }
 
 //*************************************************************
-//
-// Send a string to the UART.
+// Function: UARTSend
+//    Sends a string to the UART2 and UART0.
 //
 //*************************************************************
 void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
@@ -181,7 +201,11 @@ void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
         // Write the next character to the UART.
         //
         ROM_UARTCharPutNonBlocking(UART0_BASE, *pui8Buffer++);
+        
         while (ROM_UARTBusy(UART0_BASE));
+        
+        //ROM_UARTCharPutNonBlocking(UART2_BASE, *pui8Buffer++);
+        //while (ROM_UARTBusy(UART2_BASE));
     }
 }
 
@@ -253,7 +277,7 @@ void parse_gps_data(void)
 {
   uint32_t index = 0;
 
-  char *buffer = gps_buffer;
+  char *buffer = gps_dummy_buffer;
 
   while (index <= BUFFERSIZE){
 
@@ -395,11 +419,11 @@ void update_coordinates(char *buffer, uint32_t index)
 
 
 
-/*
- *  You may notice this: (index%BUFFERSIZE) in multiple places. If our
- *  index exceeds our BUFFERSIZE then the modulus will allow us to wrap around
- *  and start at the beginning of our circular array.
- */
+//----------------------------------------------------------------------------------
+//  Function: parse_code
+//
+//      Finds starting code for a GPGGA section in the NMEA code in GPS_BUFFER
+//----------------------------------------------------------------------------------
 void parse_code(char *buffer, uint32_t index)
 {
   //char *gpgll = "GPGGA";
@@ -422,119 +446,129 @@ void parse_code(char *buffer, uint32_t index)
 }
 
 
-
-//************************************************************
+//----------------------------------------------------------------------------------
+// Function: initConfig
 //
-// This example demonstrates how to send a string of data to the UART.
-//
-//************************************************************
-int main(void)
-{
-    uint32_t count;
-    index = 0;
-    count = 0;
+//   Initializations for configurations needed
+//----------------------------------------------------------------------------------
+void initConfig(void){
 
-    //gps_data = malloc(sizeof(GPS_data));
-
-    // gps_data.latitude[0] = '0';
-    // gps_data.latitude[1] = '7';
-    // gps_data.latitude[2] = '5';
-    // gps_data.latitude[3] = '.';
-    // gps_data.latitude[4] = '6';
-    // gps_data.latitude[5] = '9';
-    // gps_data.latitude[6] = '7';
-    // gps_data.latitude[7] = '6';
-    //
-    // gps_data.longitude[0] = '4';
-    // gps_data.longitude[1] = '5';
-    // gps_data.longitude[2] = '.';
-    // gps_data.longitude[3] = '3';
-    // gps_data.longitude[4] = '8';
-    // gps_data.longitude[5] = '3';
-    // gps_data.longitude[6] = '1';
-    //
-    // gps_data.north_south = 'N';
-    // gps_data.east_west = 'E';
-
-    //
     // Enable lazy stacking for interrupt handlers.  This allows floating-point
     // instructions to be used within interrupt handlers, but at the expense of
     // extra stack usage.
-    //
     ROM_FPUEnable();
     ROM_FPULazyStackingEnable();
 
-    //
     // Set the clocking to run directly from the crystal.
-    //
-    ROM_SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN |
-                       SYSCTL_XTAL_16MHZ);
+    ROM_SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
 
-    //
-    // Enable the GPIO port that is used for the on-board LED.
-    //
+    // Enable the GPIO port that is used for the on-board LED. (FOR VISUAL FEEDBACK)
     ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
 
-    //
     // Enable the GPIO pins for the LED (PF2).
-    //
     ROM_GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_2);
 
-    //
-    // Enable the peripherals used by this example.
-    //
-    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
-    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
-
-    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-
-    //
     // Enable processor interrupts.
-    //
     ROM_IntMasterEnable();
 
-    //
-    // Set GPIO A0 and A1 as UART pins.
-    //
+}
+
+//----------------------------------------------------------------------------------
+// Function: initDebugTerminal
+//
+//  Initializes UART0 to use as a debug console in PC
+//  
+//  to see messages:
+//      in Linix:   sudo miniterm.py /dev/"Device ID" "baudRate"
+//      in Windows: Download putty
+//                  Open serial channel on assigned COM port at the given Baud Rate       
+//----------------------------------------------------------------------------------
+void initDebugTerminal(void){
+
+  // Initialize UART0 and GPIOA functions for Tiva C
+  ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+  ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+
+  //Configure Pin PA0 as UART0-RX and Pin PA1 as UART0-TX
+  ROM_GPIOPinConfigure(GPIO_PA0_U0RX);
+  ROM_GPIOPinConfigure(GPIO_PA1_U0TX);
+  
+  //Configure Pins 1 and 2 in Port A to be served by UART0
+  ROM_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+
+  // Configure the UART1 for 8-N-1 operation with a Buad Rate of 115200
+  ROM_UARTConfigSetExpClk(UART0_BASE, ROM_SysCtlClockGet(), 115200,(UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
+}
+
+
+
+//----------------------------------------------------------------------------------
+//
+//  Function: main
+//
+//    Actively polls the GPS module and transmits it thorough the Transmitter in UART2
+//----------------------------------------------------------------------------------
+int main(void){
+
+//----------------------------------------------------------------------------------
+  uint32_t count;
+    index = 0;
+    count = 0;
+
+    initConfig();
+
+    initDebugTerminal();
+    
+    //-------------Initializations for GPS Module-----------------------------------
+
+    //  Initialize UART1 and GPIOB functions for GPS Module
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+   
+    //Configure Pin PB0 as UART1-RX and Pin PB1 as UART1-TX
     ROM_GPIOPinConfigure(GPIO_PB0_U1RX);
     ROM_GPIOPinConfigure(GPIO_PB1_U1TX);
+
+    //Configure Pins 1 and 2 in Port B to be served by UART1
     ROM_GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
-    ROM_GPIOPinConfigure(GPIO_PA0_U0RX);
-    ROM_GPIOPinConfigure(GPIO_PA1_U0TX);
-    ROM_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    // Configure the UART1 for 8-N-1 operation with a Buad Rate of 9600
+    ROM_UARTConfigSetExpClk(UART1_BASE, ROM_SysCtlClockGet(), 9600, (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
 
 
-    ROM_UARTConfigSetExpClk(UART0_BASE, ROM_SysCtlClockGet(), 115200,
-                            (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
-                             UART_CONFIG_PAR_NONE));
+    //-------------Initializations for Digital Tranmitter Module----------------------
+    
+    //  Initialize UART2 and GPIOD functions for Digital Transmitter
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART2);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
-    //
-    // Configure the UART for 115,200, 8-N-1 operation.
-    //
-    ROM_UARTConfigSetExpClk(UART1_BASE, ROM_SysCtlClockGet(), 9600,
-                            (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
-                             UART_CONFIG_PAR_NONE));
+    //Configure Pin PD6 as UART2-RX and Pin PD7 as UART2-TX
+    ROM_GPIOPinConfigure(GPIO_PD6_U2RX);
+    ROM_GPIOPinConfigure(GPIO_PD7_U2TX);
 
-    //
+    //Configure Pins 6 and 7 in Port D to be served by UART2
+    //ROM_GPIOPinTypeUART(GPIO_PORTD_BASE, GPIO_PIN_6 | GPIO_PIN_7);
+
+    // Configure the UART1 for 8-N-1 operation with a Buad Rate of 57600
+    //ROM_UARTConfigSetExpClk(UART2_BASE, ROM_SysCtlClockGet(), 57600, (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
+
+    
+
     // Enable the UART interrupt.
-    //
     ROM_IntEnable(INT_UART1);
     ROM_UARTIntEnable(UART1_BASE, UART_INT_RX | UART_INT_RT);
-
-
 
     while(1){
       count++;
       if(count > 1500000){
         count = 0;
         ROM_UARTCharPutNonBlocking(UART0_BASE, '\n');
-        //UARTSend((uint8_t*) gps_buffer, 699);
+        //ROM_UARTCharPutNonBlocking(UART2_BASE, '\n');
+
         parse_gps_data();
-        GPSSend();
-        //UARTSend((uint8_t*) gps_buffer, BUFFERSIZE);
+        GPSSend();  
       }
     }
 
 }
+
