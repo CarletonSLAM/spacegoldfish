@@ -1,0 +1,49 @@
+.contact-lockup
+  text-align: center
+
+  .social-links
+    max-width:  700px
+    margin:     0px auto 50px
+    +display(flex)
+    +justify-content(space-around)
+    +flex-wrap(wrap)
+
+    [class^="icon-"]
+      +size(50px)
+      font-size:      28px
+
+      &.icon-twitter
+        background:   $light-blue
+
+      &.icon-google
+        background:   #DD4B39
+
+      &.icon-github
+        font-size:      50px
+
+      &.icon-linkedin-square
+        background:   #069
+
+    a
+      display:        block
+      line-height:    50px
+      color:          white
+      border-radius:  50%
+      margin:         5px
+      +transition()
+
+      &:hover
+        +transform(scale(1.2))
+
+  .bar
+    width:      30%
+    margin:     0px auto 30px
+
+  .biglink
+    display:    inline-block
+
+    font:
+      size:     48px
+      weight:   700
+
+    line-height: 1

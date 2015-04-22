@@ -1,0 +1,55 @@
+.alt-section
+  background: #333
+
+  h3
+    text-align: center
+    padding-top: 15px
+
+.thumb-container
+  max-width: 800px
+  margin: 0px auto
+  padding-bottom: 100px
+  +clearfix()
+
+  .thumb-unit
+    display: block
+    width: 25%
+    background: white
+    float: left
+    padding-top: 20%
+    position: relative
+    //overflow: hidden
+
+    background:
+      position: center center
+      repeat: no-repeat
+      size: cover
+
+    .thumb-overlay
+      +position(absolute, 0% 0px null 0px)
+      height: 100%
+      background: fade-out($accent-color, 0.45)
+      text-align: center
+      +display(flex)
+      +align-items(center)
+      +justify-content(space-around)
+      +transform(matrix3d(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1))
+      opacity: 0
+      +transition(opacity, 300ms, ease-in, 500ms)
+
+      strong
+        display: block
+        padding: 20px
+        color: white
+        font:
+          weight: 300
+          size: 24px
+        line-height: 1.2
+        text-transform: uppercase
+
+    &:hover
+      z-index: 2
+
+      .thumb-overlay
+        @extend %animation
+        opacity: 1

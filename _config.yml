@@ -1,0 +1,13 @@
+# Build settings
+highlighter: pygments
+kramdown:
+  input: GFM
+permalink: pretty
+
+safe: true
+lsi: false
+port: 3000
+
+sass:
+  sass_dir: assets/css
+  style: :nested
