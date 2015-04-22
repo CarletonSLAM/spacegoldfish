@@ -40,7 +40,6 @@ int main(void){
     ROM_UARTCharPutNonBlocking(UART0_BASE, temp[1]);
     ROM_UARTCharPutNonBlocking(UART0_BASE, temp[2]);
 
-
 }
 
 void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
@@ -59,13 +58,13 @@ void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
 }
 
 void initI2C1(void) {
-    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C1);
-    ROM_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C1);
-    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+   ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
     ROM_GPIOPinConfigure(GPIO_PA6_I2C1SCL);
     ROM_GPIOPinConfigure(GPIO_PA7_I2C1SDA);
     ROM_GPIOPinTypeI2CSCL(GPIO_PORTA_BASE, GPIO_PIN_6);
     ROM_GPIOPinTypeI2C(GPIO_PORTA_BASE, GPIO_PIN_7);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C1);
+    ROM_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C1);
     ROM_I2CMasterInitExpClk(I2C1_BASE, ROM_SysCtlClockGet(), false);
     HWREG(I2C1_BASE + I2C_O_FIFOCTL) = 80008000;
 
@@ -87,6 +86,7 @@ char promRead() {
     ROM_I2CMasterSlaveAddrSet(I2C1_BASE, 0xEE, true);
     ROM_I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_SINGLE_RECEIVE);
     while(ROM_I2CMasterBusy(I2C1_BASE));
+//  ROM_I2CMasterControl(I2C1_BASE, I2C_MASTER_CMD_BURST_RECEIVE_FINISH);
     return ROM_I2CMasterDataGet(I2C1_BASE);
 }
 
