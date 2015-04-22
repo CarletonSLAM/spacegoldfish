@@ -165,22 +165,6 @@ void UARTIntHandler(void)
         }
 
         gps_buffer[index] = c;
-
-        //
-        // Blink the LED to show a character transfer is occuring.
-        //
-        //ROM_GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
-
-        //
-        // Delay for 1 millisecond.  Each SysCtlDelay is about 3 clocks.
-        //
-        //ROM_SysCtlDelay(ROM_SysCtlClockGet() / (1000 * 3));
-
-        //
-        // Turn off the LED
-        //
-        //ROM_GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
-
     }
 }
 
@@ -555,9 +539,30 @@ void UART_setup_transmitter(void){
 
 }
 
+void timer_setup(void){
+  ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+
+  //
+  // Configure the two 32-bit periodic timers.
+  //
+  ROM_TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
+  ROM_TimerLoadSet(TIMER0_BASE, TIMER_A, ROM_SysCtlClockGet());
+
+  //
+  // Setup the interrupts for the timer timeouts.
+  //
+  ROM_IntEnable(INT_TIMER0A);
+  ROM_TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+
+  //
+  // Enable the timers.
+  //
+  ROM_TimerEnable(TIMER0_BASE, TIMER_A);
+}
+
 //************************************************************
 //
-// This example demonstrates how to send a string of data to the UART.
+//
 //
 //************************************************************
 int main(void)
@@ -568,32 +573,9 @@ int main(void)
   UART_setup_gps();
   UART_setup_debug();
   UART_setup_transmitter();
+  timer_setup();
 
+  while(1);
 
-  //TimerClockSourceSet(TIMER0_BASE, TIMER_CLOCK_SYSTEM);
-  /* 
-  // Configure Timer0 as a full-width periodic timer
-  ROM_TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
-
-  ROM_TimerPrescaleMatchSet(TIMER0_BASE, TIMER_BOTH, 255);
-
-  ROM_TimerLoadSet(TIMER0_BASE, TIMER_BOTH, 65793);
-
-  //ROM_TimerIntRegister(TIMER0_BASE, TIMER_BOTH, timer_0A_handler);
-  ROM_TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
-  ROM_TimerEnable(TIMER0_BASE, TIMER_BOTH);
-  */
-
-  while(1){
-    for(count = 0;count<1500000;count++){}
-
-    ROM_UARTCharPutNonBlocking(UART0_BASE, '\n');
-    ROM_UARTCharPutNonBlocking(UART4_BASE, '\n');
-    parse_gps_data();
-    
-    GPSSend();
-  
-
-  }
 
 }
