@@ -57,19 +57,32 @@ void uartInit_DEBUG() {
 void uartTransmitTiltAngles_DEBUG(int16_t dataBuf[]) {
     char trasmitBuffer[3];
     for (int i = 0; i<3; i++) {
+
+        if (i == 0) {
+            ROM_UARTCharPutNonBlocking(UART0_BASE, 'X');
+        }
+        else if (i == 1) {
+            ROM_UARTCharPutNonBlocking(UART0_BASE, 'Y');
+        }
+        else if (i == 2) {
+            ROM_UARTCharPutNonBlocking(UART0_BASE, 'Z');
+        }
+
         if (dataBuf[i] < 0) {
             dataBuf[i] *= -1;
             ROM_UARTCharPutNonBlocking(UART0_BASE, '-');
         }
+        /*
         trasmitBuffer[0] = dataBuf[i]/100;
         trasmitBuffer[1] = dataBuf[i]/10;
         trasmitBuffer[2] = dataBuf[i]%10;
+        */
+        trasmitBuffer[0] = dataBuf[i]/10;
+        trasmitBuffer[1] = dataBuf[i]%10;
         ROM_UARTCharPutNonBlocking(UART0_BASE, trasmitBuffer[0] + '0');
         ROM_UARTCharPutNonBlocking(UART0_BASE, trasmitBuffer[1] + '0');
-        ROM_UARTCharPutNonBlocking(UART0_BASE, trasmitBuffer[2] + '0');
         ROM_UARTCharPutNonBlocking(UART0_BASE, ' ');
     }
-    ROM_UARTCharPutNonBlocking(UART0_BASE, '\n');
 }
 
 
