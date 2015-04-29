@@ -7,7 +7,7 @@ layout: deafault
 Below you'll see our mass budget for the entire balloon.
 
 Item	|	Number	|	Mass(g) per Each	|	Total Mass(g)
-:------:|:---------:|:---------------------:|:----------------:	
+:------:|:-------------:|:-----------------------------:|:------------------------:	
 Analog - Antenna (1.3 Ghz SPW12 RCHP)	|	1	|	8.00	|	8.00
 Analog - Battery (Flightmax 4000mAh)	|	1	|	306.00	|	306.00
 Analog - Combo Cable for GoPro Hero3	|	1	|	82.00	|	82.00
@@ -37,6 +37,7 @@ Structure - Weather Balloon (1200 g)	|	1	|	1,200.00	|	2,828.86
 Below you'll see our power budget for the entire balloon.
 
 Item	|	Number	|	Input Voltage	|	Input Current
+:------:|:-------------:|:---------------------:|:-------------------------:	
 Analog - (FPV1012) Analog Transmitter	|	1	|	90.00	|	90.00
 Analog - (FPV1012) Analog Receiver	|	1	|	0.00	|	0.00
 Digital - Altimeter (MS5607)	|	1	|	10.00	|	10.00
