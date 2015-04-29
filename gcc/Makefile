@@ -58,7 +58,7 @@ endif
 
 # include new .c files here
 
-SRC_C:=main.c CU_system_TM4C123.c startup.c gpsParser.c altimeter.c accelerometer.c
+SRC_C:=main.c CU_system_TM4C123.c startup.c gpsParser.c altimeter.c accelerometer.c logger.c
 SRC_CPP:=
 
 OBJ:=$(SRC_C:.c=.o) $(SRC_CPP:.cpp=.o)

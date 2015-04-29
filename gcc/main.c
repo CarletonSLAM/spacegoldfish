@@ -12,7 +12,7 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/uart.h"
 #include "driverlib/timer.h"
-
+#include "logger.h"
 #include "gpsParser.h"
 #include "altimeter.h"
 #include "accelerometer.h"
@@ -70,6 +70,10 @@ int main(void)
 {
 
   Tiva_setup();
+
+  // setup the logger
+  
+  logger_init();
   UART_setup_gps();
   UART_setup_debug();
   UART_setup_transmitter();
