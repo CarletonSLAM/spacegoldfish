@@ -1,6 +1,28 @@
 ---
-layout: deafault
+layout:   deafault
 ---
+
+**Team Name** - CU in the Air
+
+**University** - Carleton University
+
+**City** - Ottawa 
+
+**Country** - Canada
+
+**Region** - Ontario
+
+**Description**
+
+CU in the Air is a group of Carleton University engineering students that have come together to put their love for creative thinking and problem solving to the test. As we are always looking for a challenge, the GSBC grabbed our attention immediately. Excited to see what kind of results we can produce, CU in the Air has officially joined the effort in celebrating an age where anyone can reach the edge of space for no more than a few hundred dollars.
+
+**What do you have planned for your launch?**
+
+CU in the Air will launch a high altitude balloon to heights exceeding 100,000 feet, carrying a payload of equipment used to study the earth's environment at extremely high altitudes. Such equipment includes: an altimeter, a magnetometer, a temperature sensor, a GPS unit, and Analog and Digital transmitters. The payload will also include high definition photo and video equipment, which will be live-streaming its journey from its initial launch point in Ottawa to its final landing location. 
+
+**Why did we join the GSBC?**
+
+We loved the challenge of flying a payload to near space heights. Being able to share our experience(s) with an international community working on similar projects made us all the more excited to to put our minds to work!
 
 ###	Mass Budget
 
