@@ -26,7 +26,6 @@ Camera - Micro SD Card:(Lexar 32GB)		|	2	|	9.00	|	18.00
 Camera - GOPro Hero3 White	|	1	|	136.00	|	136.00
 Structure - Styrofoam Cooler (40 Qt.)	|	1	|	238.14	|	238.14
 PAYLOAD(g):		|	1,473.86	|	PAYLOAD(lbs):		|	3.248396256
-						
 Structure - Aluminum Foil Tape (for Radar Reflector)	|	1	|	5.00	|	5.00
 Structure - Parachute (6 Foot)	|	1	|	150.00	|	150.00	
 TOTAL LAUNCH(g):	|	1,628.86		|	TOTAL LAUNCH(lbs):	|	3.590016256
@@ -46,10 +45,8 @@ Digital - Dev. Board (Tiva™ EK-TM4C123GXL)	|	1	|	107.73	|	107.73
 Digital -  Fabricated PCB (For Sensors)		|	1	|	20.00	|	20.00
 Digital - GPS Module (PAM-7Q)	|	1	|	15.00	|	15.00
 Digital -  Transmitter (RFD 900+)	|	1	|	14.50	|	14.50
-			
 Camera - Canon ELPH 130 IS	|	1	|	454.00	|	454.00
 Camera - GOPro Hero3 White	|	1	|	136.00	|	136.00
-
 Analog - Battery (Flightmax 4000mAh)	|	1	|	306.00	|	306.00
 Digital - Noise Reduction (TURNIGY 3A UBEC)		|	1	|	7.50	|	7.50
 Digital - Battery (Turnigy nano-tech 3000mAh)	|	1	|	165.00	|	165.00
