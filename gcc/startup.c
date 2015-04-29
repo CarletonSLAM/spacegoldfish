@@ -43,6 +43,7 @@ extern void TIMER0B_Handler(void);
 extern void GPIOF_Handler(void);
 extern void UARTIntHandler(void);
 extern void timer_0A_handler(void);
+extern void timer_1A_handler(void);
 
 extern void (*__init_array_start)();
 extern void (*__init_array_end)();
@@ -108,7 +109,7 @@ void (* const __Vectors[])(void) =
     IntDefaultHandler,                      // Watchdog timer
     timer_0A_handler,                       // Timer 0 subtimer A
     IntDefaultHandler,                      // Timer 0 subtimer B
-    IntDefaultHandler,                      // Timer 1 subtimer A
+    timer_1A_handler,                      // Timer 1 subtimer A
     IntDefaultHandler,                      // Timer 1 subtimer B
     IntDefaultHandler,                      // Timer 2 subtimer A
     IntDefaultHandler,                      // Timer 2 subtimer B
