@@ -1,0 +1,20 @@
+<footer>
+  <div class="footer-lockup">
+    <hr>
+
+    <div class="sub-menu">
+
+      <nav>
+
+        {% for item in page.menu %}
+
+          <a href=#{{ item.url }}>{{ item.header }}</a>
+
+        {% endfor %}
+
+      </nav>
+
+    </div>
+  </div>
+
+</footer>

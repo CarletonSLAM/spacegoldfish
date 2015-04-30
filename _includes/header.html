@@ -1,0 +1,23 @@
+<header>
+
+  <div class="header-lockup">
+    <div class="sub-menu">
+      <nav>
+
+        {% for item in page.menu %}
+
+          <a href=#{{ item.url }}>{{ item.header }}</a>
+
+        {% endfor %}
+
+      </nav>
+    </div>
+
+    <a href="/"><h1>CU in the Air</h1></a>
+    <p class="kicker">Spacegoldfish</p>
+
+    <hr>
+
+  </div>
+
+</header>
