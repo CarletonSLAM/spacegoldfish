@@ -86,7 +86,7 @@ int main(void)
   timer_setup();
   alti_setup();
   accel_setup();
- 
+  logger_logString("Setup complete\n");
   init_Pressure = alti_init_pres();
 
   
@@ -501,13 +501,14 @@ void printStream(void)
   UARTSend((uint32_t) UART0_BASE, (uint8_t*) UART_Transmit_Data_GPS, sizeof(UART_Transmit_Data_GPS)/sizeof(char));
 
   UARTSend((uint32_t) UART5_BASE, (uint8_t*) UART_Transmit_Data_GPS, sizeof(UART_Transmit_Data_GPS)/sizeof(char));
+  UARTSend((uint32_t) UART4_BASE, (uint8_t*) UART_Transmit_Data_GPS, sizeof(UART_Transmit_Data_GPS)/sizeof(char));
 
   UARTSend((uint32_t) UART0_BASE, (uint8_t*) UART_Transmit_Data_ALTIMETER, sizeof(UART_Transmit_Data_ALTIMETER)/sizeof(char));
-  
+  UARTSend((uint32_t) UART4_BASE, (uint8_t*) UART_Transmit_Data_ALTIMETER, sizeof(UART_Transmit_Data_ALTIMETER)/sizeof(char));
   UARTSend((uint32_t) UART5_BASE, (uint8_t*) UART_Transmit_Data_ALTIMETER, sizeof(UART_Transmit_Data_ALTIMETER)/sizeof(char));
 
   UARTSend((uint32_t) UART0_BASE, (uint8_t*) UART_Transmit_Data_ACCEL, sizeof(UART_Transmit_Data_ACCEL)/sizeof(char));
-  
+  UARTSend((uint32_t) UART4_BASE, (uint8_t*) UART_Transmit_Data_ACCEL, sizeof(UART_Transmit_Data_ACCEL)/sizeof(char));
   UARTSend((uint32_t) UART5_BASE, (uint8_t*) UART_Transmit_Data_ACCEL, sizeof(UART_Transmit_Data_ACCEL)/sizeof(char));
 
   i=0;
