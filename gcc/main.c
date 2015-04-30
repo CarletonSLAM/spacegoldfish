@@ -13,6 +13,7 @@
 #include "driverlib/uart.h"
 #include "driverlib/timer.h"
 #include "logger.h"
+#include "driverlib/pwm.h"
 #include "gpsParser.h"
 #include "altimeter.h"
 #include "accelerometer.h"
@@ -25,8 +26,10 @@
 void Tiva_setup(void);
 void timer_setup(void);
 void timer_0A_handler(void);
+void timer_1A_handler(void);
 void UARTIntHandler(void);
 void printStream(void);
+void morse_tone_setup(void);
 
 
 
@@ -70,19 +73,23 @@ int main(void)
 {
 
   Tiva_setup();
-
   // setup the logger
   
   logger_init();
+
+  morse_tone_setup();
   UART_setup_gps();
   UART_setup_debug();
   UART_setup_transmitter();
+  
   I2C1_setup();
   timer_setup();
   alti_setup();
   accel_setup();
+ 
   init_Pressure = alti_init_pres();
 
+  
   while(1);
 }
 
@@ -97,6 +104,7 @@ int main(void)
 void timer_0A_handler(void)
 {
 
+  
   ROM_TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
   parse_gps_data();
   alti_Convert();
@@ -109,6 +117,48 @@ void timer_0A_handler(void)
   ROM_UARTCharPutNonBlocking(UART0_BASE, '\n');
 
 }
+
+
+//**************************************************************
+//
+// The timer1A interrupt handler.
+//
+//**************************************************************
+void timer_1A_handler(void)
+{
+  static char callsign[29] = {'.','.','.','-','P','.','-','P','.','.','.','-','-','P','.','-','P','.','-','P','-','.','.','-','P','-','.','.','.'};
+  static uint8_t mc_idx = 0;
+  static uint8_t mc_tick = 0;
+  static uint8_t silence = 0;
+
+  ROM_TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+  if(mc_tick == 0){
+     if(silence){
+      ROM_PWMOutputState(PWM1_BASE, PWM_OUT_6_BIT, false);
+      silence = 0;
+     }else {
+      if(callsign[mc_idx] == '.'){
+        ROM_PWMOutputState(PWM1_BASE, PWM_OUT_6_BIT, true);
+      }else if(callsign[mc_idx] == '-'){
+        mc_tick = 2;
+        ROM_PWMOutputState(PWM1_BASE, PWM_OUT_6_BIT, true);
+      }else{
+        mc_tick = 2;
+        ROM_PWMOutputState(PWM1_BASE, PWM_OUT_6_BIT, false);
+      }
+      mc_idx++;
+      if(mc_idx == 29){
+        ROM_PWMOutputState(PWM1_BASE, PWM_OUT_6_BIT, false);
+        mc_idx = 0;
+        mc_tick = 10;
+      }
+      silence = 1;
+    }
+  }else{
+    mc_tick--;    
+  }
+}
+
 
 
 //**************************************************************
@@ -198,8 +248,67 @@ void timer_setup(void){
   // Enable the timers.
   //
   ROM_TimerEnable(TIMER0_BASE, TIMER_A);
+
+
+
+
+  //Timer1A for Morsecode call sign, ticks every 500ms
+   ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+
+  //
+  // Configure the two 32-bit periodic timers.
+  //
+  ROM_TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
+  ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, ROM_SysCtlClockGet()>>1);
+
+  //
+  // Setup the interrupts for the timer timeouts.
+  //
+  ROM_IntEnable(INT_TIMER1A);
+  ROM_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+
+  //
+  // Enable the timers.
+  //
+  ROM_TimerEnable(TIMER1_BASE, TIMER_A);
+
+
 }
 
+
+void morse_tone_setup(void){
+  // Uses M1PWM6  (Module 1, Generator 3, output 6) on PF2
+
+  //Enable the GPIO F Pheriperal
+  ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+
+  // Set GPIO F2 to PMW function
+  ROM_GPIOPinConfigure(GPIO_PF2_M1PWM6);
+  ROM_GPIOPinTypePWM(GPIO_PORTF_BASE, GPIO_PIN_2);
+  ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM1);
+
+  ROM_SysCtlPWMClockSet(SYSCTL_PWMDIV_64);
+  //Enable PWM module 1
+
+  //Configure generator 3
+  ROM_PWMGenConfigure(PWM1_BASE, PWM_GEN_3,PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
+
+  //Set the period to be 512Hz tone, divide clock by 2^9
+  ROM_PWMGenPeriodSet(PWM1_BASE, PWM_GEN_3, 400);
+
+  // Set the pulse width of output 6 for a 50% duty cycle.
+  ROM_PWMPulseWidthSet(PWM1_BASE, PWM_OUT_6, 200);
+
+  
+  //
+  // Start the timers in generator 3.
+  //
+  ROM_PWMGenEnable(PWM1_BASE, PWM_GEN_3);
+  //
+  // Enable the outputs.
+  //ROM_PWMOutputState(PWM1_BASE, PWM_OUT_6_BIT, true);
+
+}
 
 
 
@@ -213,7 +322,7 @@ void printStream(void)
 {
   char UART_Transmit_Data_GPS[54];
   char UART_Transmit_Data_ALTIMETER[27];
-  char UART_Transmit_Data_ACCEL[14];
+  char UART_Transmit_Data_ACCEL[15];
 
   int32_t Temp_temp, Pres_temp,Altitude_temp;
 
@@ -277,6 +386,7 @@ void printStream(void)
   UART_Transmit_Data_ALTIMETER[0] = 'E';
   if(Temp_temp<0){
     UART_Transmit_Data_ALTIMETER[1]='-';
+    Temp_temp*=-1;
   }
   else{
     UART_Transmit_Data_ALTIMETER[1]='+';
@@ -300,7 +410,11 @@ void printStream(void)
   //Pressure parsing
   UART_Transmit_Data_ALTIMETER[8] = 'F';
 
-  UART_Transmit_Data_ALTIMETER[9]  = Pres_temp/100000 + '0';
+  if(Pres_temp<0){
+    Pres_temp*=-1;
+  }
+
+  UART_Transmit_Data_ALTIMETER[9]   = Pres_temp/100000 + '0';
   Pres_temp%=100000;
 
   UART_Transmit_Data_ALTIMETER[10]  = Pres_temp/10000 + '0';
@@ -325,24 +439,24 @@ void printStream(void)
   UART_Transmit_Data_ALTIMETER[16] = ' '; 
   UART_Transmit_Data_ALTIMETER[17] = 'G'; 
 
-  UART_Transmit_Data_ALTIMETER[18]  =  Altitude_temp/1000000 + '0';
-  Altitude_temp%=1000000;
+  UART_Transmit_Data_ALTIMETER[18]  =  Altitude_temp/100000 + '0';
+  Altitude_temp%=100000;
 
-  UART_Transmit_Data_ALTIMETER[19]  = Altitude_temp/10000 + '0';
+  UART_Transmit_Data_ALTIMETER[19]  =  Altitude_temp/10000 + '0';
   Altitude_temp%=10000;
 
-  UART_Transmit_Data_ALTIMETER[20]  = Altitude_temp/1000 + '0';
+  UART_Transmit_Data_ALTIMETER[20]  =  Altitude_temp/1000 + '0';
   Altitude_temp%=1000;
 
-  UART_Transmit_Data_ALTIMETER[21] = Altitude_temp/100 + '0';
+  UART_Transmit_Data_ALTIMETER[21]  =  Altitude_temp/100 + '0';
   Altitude_temp%=100;
 
-  UART_Transmit_Data_ALTIMETER[22] = '.';
+  UART_Transmit_Data_ALTIMETER[22]  =  '.';
 
-  UART_Transmit_Data_ALTIMETER[23] = Altitude_temp/10 + '0';
+  UART_Transmit_Data_ALTIMETER[23]  =  Altitude_temp/10 + '0';
   Altitude_temp%=10;
 
-  UART_Transmit_Data_ALTIMETER[24] = Altitude_temp + '0';
+  UART_Transmit_Data_ALTIMETER[24]  =  Altitude_temp + '0';
 
 
   *(UART_Transmit_Data_ALTIMETER + sizeof(UART_Transmit_Data_ALTIMETER) - 2) = '\r';
@@ -385,13 +499,16 @@ void printStream(void)
 
 
   UARTSend((uint32_t) UART0_BASE, (uint8_t*) UART_Transmit_Data_GPS, sizeof(UART_Transmit_Data_GPS)/sizeof(char));
-  UARTSend((uint32_t) UART4_BASE, (uint8_t*) UART_Transmit_Data_GPS, sizeof(UART_Transmit_Data_GPS)/sizeof(char));
+
+  UARTSend((uint32_t) UART5_BASE, (uint8_t*) UART_Transmit_Data_GPS, sizeof(UART_Transmit_Data_GPS)/sizeof(char));
 
   UARTSend((uint32_t) UART0_BASE, (uint8_t*) UART_Transmit_Data_ALTIMETER, sizeof(UART_Transmit_Data_ALTIMETER)/sizeof(char));
-  UARTSend((uint32_t) UART4_BASE, (uint8_t*) UART_Transmit_Data_ALTIMETER, sizeof(UART_Transmit_Data_ALTIMETER)/sizeof(char));
+  
+  UARTSend((uint32_t) UART5_BASE, (uint8_t*) UART_Transmit_Data_ALTIMETER, sizeof(UART_Transmit_Data_ALTIMETER)/sizeof(char));
 
   UARTSend((uint32_t) UART0_BASE, (uint8_t*) UART_Transmit_Data_ACCEL, sizeof(UART_Transmit_Data_ACCEL)/sizeof(char));
-  UARTSend((uint32_t) UART4_BASE, (uint8_t*) UART_Transmit_Data_ACCEL, sizeof(UART_Transmit_Data_ACCEL)/sizeof(char));
+  
+  UARTSend((uint32_t) UART5_BASE, (uint8_t*) UART_Transmit_Data_ACCEL, sizeof(UART_Transmit_Data_ACCEL)/sizeof(char));
 
   i=0;
   j=0;
